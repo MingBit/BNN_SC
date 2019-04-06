@@ -227,7 +227,33 @@ def evaluation(links, Ref_links, threshold, Num_Genes):
     return(Detected, TP, FN, FP, TN, Precision, Recall, FDR, F1_Score)
 
 
+# =============================================================================
+# Iteratively update gene matrix
 
+# def get_BNN_table(input_dataset, output_path, filename, hidden_layers):
+#
+#     for gene in input_dataset.columns:
+#
+#         X_train, X_test, Y_train, Y_test = x_y_generator(input_dataset, gene)
+#         gene_train, gene_test = pred_eva(x_train=X_train, x_test=X_test, y_train=Y_train, y_test=Y_test,
+#                                          hidden_layers = hidden_layers, bnn_func=construct_bnn, input_nodes=X_train.shape[1])
+#
+#         input_dataset[gene] = (gene_test.append(gene_train)).reindex(index = input_dataset.index)
+#     input_dataset.to_csv(path + output_path + filename + '.csv')
+#
+#     return(input_dataset)
+# # =============================================================================
+# =============================================================================
+# create new Genematrix, gene updated based on raw values of other genes' expressions
+# =============================================================================
+#     if(BNN_Expr_data.index) == 0:
+#            BNN_Expr_data[gene] = gene_test.append(gene_train)
+#     else:
+#            BNN_Expr_data[gene] = (gene_test.append(gene_train)).reindex(index = BNN_Expr_data.index)
+#
+#    BNN_Expr_data.to_csv(path + output_path + filename + '.csv')
+
+# create Matrix_Feature_1 and Matrix _Feature_2
 def get_BNN_table(input_dataset, output_path, filename, hidden_layers):
 
     for gene in input_dataset.columns:
@@ -240,15 +266,6 @@ def get_BNN_table(input_dataset, output_path, filename, hidden_layers):
     input_dataset.to_csv(path + output_path + filename + '.csv')
 
     return(input_dataset)
-
-#     if(BNN_Expr_data.index) == 0:
-#            BNN_Expr_data[gene] = gene_test.append(gene_train)
-#     else:
-#            BNN_Expr_data[gene] = (gene_test.append(gene_train)).reindex(index = BNN_Expr_data.index)
-#
-#    BNN_Expr_data.to_csv(path + output_path + filename + '.csv')
-
-#version_2 make feature_1 feature_2 matrices
 
 
 def test_run(BNN_Expr_data, Ref_links, threshold, input_dataset, output_path, filename):
@@ -323,16 +340,16 @@ def test_run(BNN_Expr_data, Ref_links, threshold, input_dataset, output_path, fi
 
 
 
-BNN_Expr_data = get_BNN_table(input_dataset= ESC_Data, output_path= '/ESC_DATA/',
-                              filename= 'ESC_BNN_Node_50_20', hidden_layers=[50, 20])
+BNN_Expr_data = get_BNN_table(input_dataset= HSC_Data, output_path= '/HSC_DATA/',
+                              filename= 'HSC_BNN_Node_50_20', hidden_layers=[50, 20])
 
-BNN_Expr_data.columns = [ESC_Gene_Symbol_dict[ref_id] for ref_id in BNN_Expr_data.columns]
+#BNN_Expr_data.columns = [ESC_Gene_Symbol_dict[ref_id] for ref_id in BNN_Expr_data.columns]
 
 test_run(BNN_Expr_data = BNN_Expr_data,
-         Ref_links = ESC_Ref,
+         Ref_links = HSC_Ref,
          threshold = 0.05,
-         input_dataset = ESC_Data,
-         output_path = '/tmp/',
-         filename = 'ESC_Test_BNN_Node_50_20')
+         input_dataset = HSC_Data,
+         output_path = '/HSC_DATA/',
+         filename = 'HSC_Test_BNN_Node_50_20')
 
 
