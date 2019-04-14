@@ -32,17 +32,18 @@ ESC_Gene_Symbol = pd.read_csv(path + 'ESC_DATA/GSE59892_ESC_Genesymobol.txt', se
 ESC_Gene_Symbol_dict = dict(zip(ESC_Gene_Symbol.Ref_ID, ESC_Gene_Symbol.GeneSymbol))
 ESC_Ref = pd.read_csv(path + 'ESC_DATA/GSE59892_ESC_ReferenceEdges.tsv', sep = '\t')
 
-#Sim_1 = pd.read_csv(path + 'Simulate_DATA/Sim1/Ecoli-1_dream4_timeseries.tsv', sep = '\t', index_col = 0)
-#Sim_1_Ref = pd.read_csv(path + 'Simulate_DATA/Sim1/Ecoli-1_goldstandard.tsv', sep = '\t', header = -1)
-#Sim_1_Ref.columns = ['node1', 'node2', 'value']
-#Sim_1_Ref = Sim_1_Ref.loc[Sim_1_Ref['value'] > 0]
-#
-#Sim_2 = pd.read_csv(path + 'Simulate_DATA/Sim2/Ecoli-1_dream4_timeseries.tsv', sep = '\t', index_col = 0)
-#Sim_2_Ref = pd.read_csv(path + 'Simulate_DATA/Sim2/Ecoli-1_goldstandard.tsv', sep = '\t', header = -1)
-#Sim_2_Ref.columns = ['node1', 'node2', 'value']
-#Sim_2_Ref = Sim_2_Ref.loc[Sim_2_Ref['value'] > 0]
-#
-#Sim_2.index = [index * 10 for index, i in enumerate(Sim_2.index)]
+Sim_1 = pd.read_csv(path + 'Simulate_DATA/Sim1/Ecoli-1_dream4_timeseries.tsv', sep = '\t', index_col = 0)
+Sim_1_Ref = pd.read_csv(path + 'Simulate_DATA/Sim1/Ecoli-1_goldstandard.tsv', sep = '\t', header = -1)
+Sim_1_Ref.columns = ['node1', 'node2', 'value']
+Sim_1_Ref = Sim_1_Ref.loc[Sim_1_Ref['value'] > 0]
+Sim_1.index = [index * 10 for index, i in enumerate(Sim_1.index)]
+
+Sim_2 = pd.read_csv(path + 'Simulate_DATA/Sim2/Ecoli-2_dream4_timeseries.tsv', sep = '\t', index_col = 0)
+Sim_2_Ref = pd.read_csv(path + 'Simulate_DATA/Sim2/Ecoli-2_goldstandard.tsv', sep = '\t', header = -1)
+Sim_2_Ref.columns = ['node1', 'node2', 'value']
+Sim_2_Ref = Sim_2_Ref.loc[Sim_2_Ref['value'] > 0]
+
+Sim_2.index = [index * 10 for index, i in enumerate(Sim_2.index)]
 #
 ##KK Dataset
 #Cont_Top2000 = pd.read_excel('/home/angela/MING_V9T/KK_Run36/SC3_Res/KK_Run36_Cont_Top2000.xlsx', index_col =0, sheetname = 0)
@@ -164,7 +165,7 @@ def pred_eva(x_train, x_test, y_train, y_test, bnn_func, input_nodes, hidden_lay
         }
 
         inference_args = {
-            'n' : 20000,
+            'n' : 10000,
             'callbacks': [pm.callbacks.CheckParametersConvergence()],
             'obj_optimizer': pm.adagrad_window(learning_rate=2e-4),
              'more_replacements': minibatches
@@ -172,12 +173,12 @@ def pred_eva(x_train, x_test, y_train, y_test, bnn_func, input_nodes, hidden_lay
 
         #fit model
         approx = pm.fit(method=pm.ADVI(), **inference_args)
-        trace = approx.sample(draws = 5000, **sample_kwargs)
+        trace = approx.sample(draws = 3000, **sample_kwargs)
 
 
     with model:
 
-        ppc_train = pm.sample_posterior_predictive(trace, samples=100, model = model)
+        ppc_train = pm.sample_posterior_predictive(trace, samples=500, model = model)
         #    pred_train = pd.Series((ppc_train['out'].mean(axis = 0) > 0.5) * 1, index = y_train.index)
 
         pred_train = pd.Series(ppc_train['out'].mean(0), index = y_train.index)
@@ -187,7 +188,7 @@ def pred_eva(x_train, x_test, y_train, y_test, bnn_func, input_nodes, hidden_lay
     ann_output.set_value(y_test)
 
     with model:
-        ppc_test = pm.sample_posterior_predictive(trace, samples=100, model = model)
+        ppc_test = pm.sample_posterior_predictive(trace, samples=500, model = model)
 
         #pred_test = pd.Series((ppc_test['out'].mean(0) > 0.5) * 1, index = y_test.index)
         pred_test = pd.Series(ppc_test['out'].mean(0), index = y_test.index)
@@ -256,16 +257,32 @@ def evaluation(links, Ref_links, threshold, Num_Genes):
 # create Matrix_Feature_1 and Matrix _Feature_2
 def get_BNN_table(input_dataset, output_path, filename, hidden_layers):
 
-    for gene in input_dataset.columns:
+        feature_1_Matrix = input_dataset.copy()
+        feature_2_Matrix = input_dataset.copy()
 
-        X_train, X_test, Y_train, Y_test = x_y_generator(input_dataset, gene)
-        gene_train, gene_test = pred_eva(x_train=X_train, x_test=X_test, y_train=Y_train, y_test=Y_test,
+        for gene in feature_1_Matrix.columns:
+                X_train, X_test, Y_train, Y_test = x_y_generator(feature_1_Matrix, gene)
+                gene_train, gene_test = pred_eva(x_train=X_train, x_test=X_test, y_train=Y_train, y_test=Y_test,
                                          hidden_layers = hidden_layers, bnn_func=construct_bnn, input_nodes=X_train.shape[1])
 
-        input_dataset[gene] = (gene_test.append(gene_train)).reindex(index = input_dataset.index)
-    input_dataset.to_csv(path + output_path + filename + '.csv')
+                feature_1_Matrix[gene] = (gene_test.append(gene_train)).reindex(index = feature_1_Matrix.index)
+        feature_1_Matrix.to_csv(path + output_path + filename + '_Feature_1.csv')
 
-    return(input_dataset)
+        for cell in feature_2_Matrix.index:
+                X_train, X_test, Y_train, Y_test = x_y_generator(feature_2_Matrix, gene = None, cell = cell)
+                gene_train, gene_test = pred_eva(x_train=X_train, x_test=X_test, y_train=Y_train,
+                                         y_test=Y_test, hidden_layers = hidden_layers, bnn_func=construct_bnn,
+                                         input_nodes=X_train.shape[1])
+
+                feature_2_Matrix.loc[cell] = (gene_test.append(gene_train)).reindex(index =
+                            feature_2_Matrix.transpose().index)
+
+        feature_2_Matrix.to_csv(path + output_path + filename + '_Feature_2.csv')
+
+        Features_Avg = pd.concat([feature_1_Matrix, feature_2_Matrix]).groupby(level = 0).mean()
+        Features_Avg.to_csv(path + output_path + filename + '_Feature_Avg.csv')
+
+        return(Features_Avg)
 
 
 def test_run(BNN_Expr_data, Ref_links, threshold, input_dataset, output_path, filename):
@@ -332,24 +349,29 @@ def test_run(BNN_Expr_data, Ref_links, threshold, input_dataset, output_path, fi
 
 
 #BNN_Expr_data = pd.read_csv(path + 'HSC_DATA/HSC_BNN_Node_50_20.csv', index_col = 0)
-#SC_Sim_1 = Generate_Zero(Sim_1)
-#SC_Sim_2 = Generate_Zero(Sim_2)
+SC_Sim_1 = Generate_Zero(Sim_1)
+SC_Sim_2 = Generate_Zero(Sim_2)
 
 #Tmp_Data = SC_Sim_1.astype(int)
 #SC_Sim_2.plot.hist(legend = False, xlim = [0, 1])
 
+#x = HSC_Data.values
+#min_max_scaler = preprocessing.MinMaxScaler()
+#x_scaled = min_max_scaler.fit_transform(x)
+#Norm_HSC_Data = pd.DataFrame(x_scaled)
+#Norm_HSC_Data.index = HSC_Data.index
+#Norm_HSC_Data.columns = HSC_Data.columns
 
-
-BNN_Expr_data = get_BNN_table(input_dataset= HSC_Data, output_path= '/HSC_DATA/',
-                              filename= 'HSC_BNN_Node_50_20', hidden_layers=[50, 20])
+BNN_Expr_data = get_BNN_table(input_dataset= SC_Sim_2, output_path= '/Simulate_DATA/Sim2/',
+                              filename= 'Sim2_BNN_Node_50_20', hidden_layers=[50, 20])
 
 #BNN_Expr_data.columns = [ESC_Gene_Symbol_dict[ref_id] for ref_id in BNN_Expr_data.columns]
 
 test_run(BNN_Expr_data = BNN_Expr_data,
-         Ref_links = HSC_Ref,
+         Ref_links = Sim_2_Ref,
          threshold = 0.05,
-         input_dataset = HSC_Data,
-         output_path = '/HSC_DATA/',
-         filename = 'HSC_Test_BNN_Node_50_20')
+         input_dataset = SC_Sim_2,
+         output_path = '/Simulate_DATA/Sim2/',
+         filename = 'Sim2_BNN_Node_50_20')
 
 
