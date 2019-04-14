@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+
+
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 """
 Created on Sun Apr 14 14:37:52 2019
 
@@ -20,10 +26,6 @@ latent vector from a Gaussian distribution with mean=0 and std=1.
 "Auto-encoding variational bayes."
 https://arxiv.org/abs/1312.6114
 '''
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 from keras.layers import Dense, Input
 from keras.layers import Conv2D, Flatten, Lambda
@@ -172,8 +174,7 @@ encoder.summary()
 
 import pydot
 import keras
-import pydotplus
-from keras.utils.vis_utils import model_to_dot
+
 keras.utils.vis_utils.pydot = pydot
 
 
